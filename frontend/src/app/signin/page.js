@@ -9,7 +9,7 @@ export default function SignInPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Logika login bisa ditambahkan di sini nanti
-    router.push("/"); // Redirect ke halaman home
+    router.push("/home"); // Redirect ke halaman home
   };
 
   return (
