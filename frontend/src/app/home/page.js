@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Hero from "../components/Hero";
 import Hero2 from "../components/Hero2";
 import Hero3 from "../components/Hero3";
@@ -7,6 +11,7 @@ import Footer from "../components/Footer";
 import NavbarHome from "../components/NavbarHome";
 
 const Home = () => {
+
   return (
     
     <div className="">

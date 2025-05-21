@@ -29,7 +29,7 @@ const router = useRouter();
             Pesanan Saya
           </button>
           <button
-          onClick={() => router.push("/")} 
+          onClick={() => router.push("/home")} 
           className="p-2 px-8 bg-white rounded-lg border-2 border-[#775142] hover:bg-[#775142] text-[#775142] hover:text-white transition">
             Back
           </button>

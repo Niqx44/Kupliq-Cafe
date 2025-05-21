@@ -29,7 +29,7 @@ const router = useRouter();
             Reservasi
           </button> 
           <button
-          onClick={() => router.push("/orderadmin")}  
+          onClick={() => router.push("/pesananadmin")}  
           className="p-2 px-5 bg-white rounded-lg border-2 border-[#775142] hover:bg-[#775142] text-[#775142] hover:text-white transition">
             Pesanan
           </button>

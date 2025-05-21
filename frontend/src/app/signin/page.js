@@ -1,15 +1,51 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
 
 export default function SignInPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Logika login bisa ditambahkan di sini nanti
-    router.push("/home"); // Redirect ke halaman home
+
+    try {
+      const response = await fetch("http://localhost:8080/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: email, password: password }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        setErrorMsg(errorText);
+        return;
+      }
+
+      const data = await response.json();
+      console.log("Login response:", data);
+
+      // ✅ Simpan data login ke localStorage
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("id_role", data.id_role);
+      localStorage.setItem("user_id", data.id);
+
+      // ✅ Redirect berdasarkan role
+      if (data.id_role === 1) {
+        router.push("/menuadmin");
+      } else {
+        router.push("/home");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setErrorMsg("Login error");
+    }
   };
 
   return (
@@ -40,7 +76,6 @@ export default function SignInPage() {
 
       {/* Main */}
       <div className="flex flex-1 justify-center items-center">
-        {/* Form */}
         <div className="w-2/5 max-w-md px-6">
           <h1
             className="text-4xl font-extrabold text-[#5C3A2E] mb-2"
@@ -49,19 +84,24 @@ export default function SignInPage() {
             Welcome Back to Kupliq Cafe
           </h1>
           <p className="text-sm text-gray-500 mb-6">
-            Log in to access your account and discover the latest brews, and
-            bites.
+            Log in to access your account and discover the latest brews, and bites.
           </p>
+
+          {errorMsg && <p className="text-red-600 text-sm mb-2">{errorMsg}</p>}
 
           <form className="space-y-3" onSubmit={handleSubmit}>
             <input
               type="email"
               placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="text-black w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5C3A2E]"
             />
             <input
               type="password"
               placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="text-black w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5C3A2E]"
             />
             <button
@@ -92,7 +132,6 @@ export default function SignInPage() {
           </div>
         </div>
 
-        {/* Image */}
         <div className="w-1/4 hidden md:block">
           <img
             src="/images/Slider.png"

@@ -1,45 +1,77 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
-import { FaCalendarAlt, FaClock, FaUser, FaPhone, FaEnvelope } from 'react-icons/fa';
+import { useEffect, useState } from 'react';
+import { FaCalendarAlt, FaClock, FaUser, FaPhone } from 'react-icons/fa';
 import NavbarDetailNav from '../../components/NavbarDetailRev';
-
-const dummyReservations = [
-  {
-    id: "1",
-    name: "My Reservation",
-    date: "2025-03-20",
-    time: "21:00",
-    phone: "081537285318",
-    email: "myreservation@gmail.com",
-    status: "Unconfirmed"
-  },
-  {
-    id: "2",
-    name: "User B",
-    date: "2025-03-21",
-    time: "10:00",
-    phone: "08123456789",
-    email: "userb@email.com",
-    status: "Unconfirmed"
-  }
-];
 
 export default function ReservationDetailPage() {
   const { id } = useParams();
-  const reservation = dummyReservations.find(r => r.id === id);
-  const [status, setStatus] = useState(reservation?.status || "Unconfirmed");
+  const [reservation, setReservation] = useState(null);
+  const [status, setStatus] = useState("Unconfirmed");
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false); // tambahan
 
-  const handleStatusChange = (newStatus) => {
-    setStatus(newStatus);
-    // Di implementasi sesungguhnya, lakukan PUT/POST ke API
+  useEffect(() => {
+    const fetchReservation = async () => {
+      try {
+        const res = await fetch(`http://localhost:8080/reservasi/by/${id}`);
+        if (!res.ok) throw new Error("Gagal mengambil data reservasi");
+
+        const data = await res.json();
+        setReservation({
+          id: data.id_reservasi,
+          name: `Customer ${data.id_costumer}`,
+          date: data.tanggal_reservasi,
+          time: data.waktu_reservasi,
+          keterangan: data.keterangan,
+          status: data.status,
+        });
+        setStatus(data.status);
+      } catch (error) {
+        console.error(error);
+        setReservation(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReservation();
+  }, [id]);
+
+  const handleStatusChange = async (newStatus) => {
+    setUpdating(true);
+    try {
+      const res = await fetch(`http://localhost:8080/reservasi/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) throw new Error("Gagal memperbarui status");
+
+      // Update status di UI setelah berhasil
+      setStatus(newStatus);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal memperbarui status");
+    } finally {
+      setUpdating(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen p-10 flex justify-center items-center bg-white">
+        <p className="text-[#5C4033] text-xl font-semibold">Memuat reservasi...</p>
+      </div>
+    );
+  }
 
   if (!reservation) {
     return (
       <div className="min-h-screen p-10 flex justify-center items-center bg-white">
-        <p className="text-[#5C4033] text-xl font-semibold">Reservation not found</p>
+        <p className="text-[#5C4033] text-xl font-semibold">Reservasi tidak ditemukan</p>
       </div>
     );
   }
@@ -54,32 +86,31 @@ export default function ReservationDetailPage() {
             <InputWithIcon icon={<FaCalendarAlt />} value={reservation.date} />
             <InputWithIcon icon={<FaClock />} value={reservation.time} />
             <InputWithIcon icon={<FaUser />} value={reservation.name} />
-            <InputWithIcon icon={<FaPhone />} value={reservation.phone} />
-            <InputWithIcon icon={<FaEnvelope />} value={reservation.email} />
+            <InputWithIcon icon={<FaPhone />} value={reservation.keterangan} />
           </div>
 
-          {status === "Unconfirmed" ? (
-              <div className="flex justify-end items-center gap-3 mt-6 min-h-[56px]">
-                  <button
-                    onClick={() => handleStatusChange("Rejected")}
-                    className="bg-[#f2f2f2] text-[#5C4033] px-4 py-2 rounded hover:bg-[#e4e4e4]"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange("Confirmed")}
-                     className="bg-[#f2f2f2] text-[#5C4033] px-4 py-2 rounded hover:bg-[#e4e4e4]"
-                  >
-                    Confirm
-                  </button>
-              </div>
-              ) : (
-               <div className="mt-6 text-white text-center font-semibold min-h-[56px] flex items-center justify-center">
-                    Status:{" "}
-                      <span className={status === "Confirmed" ? "text-green-400" : "text-red-400"}>
-                        {status}
-                      </span>
-              </div>
+          {status === "unconfirmed" && !updating ? (
+            <div className="flex justify-end items-center gap-3 mt-6 min-h-[56px]">
+              <button
+                onClick={() => handleStatusChange("Rejected")}
+                className="bg-[#f2f2f2] text-[#5C4033] px-4 py-2 rounded hover:bg-[#e4e4e4]"
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => handleStatusChange("Confirmed")}
+                className="bg-[#f2f2f2] text-[#5C4033] px-4 py-2 rounded hover:bg-[#e4e4e4]"
+              >
+                Confirm
+              </button>
+            </div>
+          ) : (
+            <div className="mt-6 text-white text-center font-semibold min-h-[56px] flex items-center justify-center">
+              Status:{" "}
+              <span className={status === "Confirmed" ? "text-green-400" : "text-red-400"}>
+                {status}
+              </span>
+            </div>
           )}
         </div>
       </div>
@@ -87,7 +118,6 @@ export default function ReservationDetailPage() {
   );
 }
 
-// Komponen input readonly dengan ikon
 const InputWithIcon = ({ icon, value }) => (
   <div className="flex items-center bg-white rounded px-3 py-2 text-[#5C4033]">
     <div className="mr-2">{icon}</div>

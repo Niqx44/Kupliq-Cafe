@@ -12,6 +12,8 @@ export default function AddMenuForm() {
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -24,10 +26,41 @@ export default function AddMenuForm() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert("Data berhasil disimpan!");
-    // Lanjutkan dengan API atau route lain jika perlu
+
+    setLoading(true);
+    setErrorMsg("");
+
+    const menuData = {
+      nama_menu: productName,
+      harga_menu: price,
+      kategori: category,
+      deskripsi: description,
+    };
+
+    try {
+      const response = await fetch("http://localhost:8080/menu", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(menuData),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || "Gagal menyimpan menu");
+      }
+
+      alert("Menu berhasil ditambahkan!");
+      router.push("/editmenu"); // kembali ke halaman edit menu
+    } catch (error) {
+      console.error("Gagal menyimpan menu:", error);
+      setErrorMsg("Gagal menyimpan menu: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -78,8 +111,8 @@ export default function AddMenuForm() {
             required
           >
             <option value="">Kategori</option>
-            <option value="Beverage">Beverage</option>
-            <option value="Food">Food</option>
+            <option value="Makanan">Makanan</option>
+            <option value="Minuman">Minuman</option>
           </select>
 
           <input
@@ -90,11 +123,18 @@ export default function AddMenuForm() {
             className="border border-[#5a2e1a] rounded px-4 py-2 outline-none focus:ring-1 focus:ring-[#5a2e1a]"
           />
 
+          {errorMsg && <p className="text-red-600 text-sm">{errorMsg}</p>}
+
           <button
             type="submit"
-            className="mt-2 px-6 py-2 border border-[#5a2e1a] rounded-full hover:bg-[#5a2e1a] hover:text-white transition"
+            className={`mt-2 px-6 py-2 border border-[#5a2e1a] rounded-full ${
+              loading
+                ? "bg-gray-300 text-gray-600 cursor-wait"
+                : "hover:bg-[#5a2e1a] hover:text-white transition"
+            }`}
+            disabled={loading}
           >
-            Simpan
+            {loading ? "Menyimpan..." : "Simpan"}
           </button>
         </div>
       </form>

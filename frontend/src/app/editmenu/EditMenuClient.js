@@ -1,48 +1,53 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import NavbarEditMenu from "../components/NavbarEditMenu";
-
-const dummyData = [
-  { id: 1, name: "Iced Coffee", image: "/images/img_rectangle_9.png", category: "Beverage", price: 24000 },
-  { id: 2, name: "Latte", image: "/images/img_rectangle_9.png", category: "Beverage", price: 24000 },
-  { id: 3, name: "Latte", image: "/images/img_rectangle_9.png", category: "Beverage", price: 24000 },
-  { id: 4, name: "Latte", image: "/images/img_rectangle_9.png", category: "Beverage", price: 24000 },
-  { id: 5, name: "Latte", image: "/images/img_rectangle_9.png", category: "Beverage", price: 24000 },
-  { id: 6, name: "Latte", image: "/images/img_rectangle_9.png", category: "Beverage", price: 24000 },
-];
-
-const itemsPerPage = 5;
 
 export default function EditMenuClient() {
   const router = useRouter();
+  const [menus, setMenus] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
 
-  const filteredData = useMemo(() => {
-    let data = [...dummyData];
+  useEffect(() => {
+    const fetchMenus = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/menu");
+        if (!res.ok) throw new Error("Failed to fetch menu data");
+        const data = await res.json();
 
+        const menusWithImage = data.map((menu) => ({
+          ...menu,
+          image: "/images/img_rectangle_9.png",
+        }));
+
+        setMenus(menusWithImage);
+      } catch (error) {
+        console.error("Error fetching menu:", error);
+      }
+    };
+
+    fetchMenus();
+  }, []);
+
+  const filteredData = useMemo(() => {
+    let data = [...menus];
     if (searchTerm) {
       data = data.filter((item) =>
-        [item.name, item.category, item.price.toString()].some((val) =>
+        [item.nama_menu, item.kategori, item.harga_menu.toString()].some((val) =>
           val.toLowerCase().includes(searchTerm.toLowerCase())
         )
       );
     }
 
     if (filterCategory) {
-      data = data.filter((item) => item.category === filterCategory);
+      data = data.filter((item) => item.kategori === filterCategory);
     }
 
     return data;
-  }, [searchTerm, filterCategory]);
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentData = filteredData.slice(startIndex, startIndex + itemsPerPage);
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  }, [menus, searchTerm, filterCategory]);
 
   const toggleSelect = (id) => {
     setSelectedItems((prev) =>
@@ -50,13 +55,21 @@ export default function EditMenuClient() {
     );
   };
 
-  const handleDelete = () => {
-    alert(`Deleting items: ${selectedItems.join(", ")}`);
-    setSelectedItems([]);
-  };
+  const handleDelete = async () => {
+    for (const id of selectedItems) {
+      try {
+        const res = await fetch(`http://localhost:8080/menu/${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Failed to delete menu");
+      } catch (err) {
+        console.error("Error deleting menu:", err);
+      }
+    }
 
-  const goToEditPage = () => {
-    router.push("/additem");
+    setMenus((prev) => prev.filter((item) => !selectedItems.includes(item.id_menu)));
+    setSelectedItems([]);
+    alert("Menu berhasil dihapus.");
   };
 
   return (
@@ -65,7 +78,6 @@ export default function EditMenuClient() {
         <NavbarEditMenu />
       </div>
 
-      {/* Toolbar */}
       <div className="flex flex-wrap gap-6 items-center mb-6">
         <input
           type="text"
@@ -73,7 +85,6 @@ export default function EditMenuClient() {
           className="border px-3 py-2 rounded text-black w-52"
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
@@ -83,9 +94,8 @@ export default function EditMenuClient() {
           <option value="Beverage">Beverage</option>
           <option value="Food">Food</option>
         </select>
-
         <button
-          onClick={goToEditPage}
+          onClick={() => router.push("/additem")}
           disabled={selectedItems.length > 0}
           className={`px-4 py-2 rounded text-white ${
             selectedItems.length > 0
@@ -95,7 +105,6 @@ export default function EditMenuClient() {
         >
           Add
         </button>
-
         <button
           onClick={handleDelete}
           disabled={selectedItems.length === 0}
@@ -109,7 +118,6 @@ export default function EditMenuClient() {
         </button>
       </div>
 
-      {/* Table Header */}
       <div className="grid grid-cols-[30px_1fr_1fr_1fr_1fr_100px] font-semibold border-b py-2 text-gray-800">
         <div></div>
         <div>Name</div>
@@ -119,66 +127,36 @@ export default function EditMenuClient() {
         <div>Edit</div>
       </div>
 
-      {/* Table Rows */}
-      {currentData.map((item) => (
+      {filteredData.map((item) => (
         <div
-          key={item.id}
+          key={item.id_menu}
           className="grid grid-cols-[30px_1fr_1fr_1fr_1fr_100px] items-center border-b py-2 text-gray-700"
         >
           <input
             type="checkbox"
-            checked={selectedItems.includes(item.id)}
-            onChange={() => toggleSelect(item.id)}
+            checked={selectedItems.includes(item.id_menu)}
+            onChange={() => toggleSelect(item.id_menu)}
           />
-          <div>{item.name}</div>
+          <div>{item.nama_menu}</div>
           <div>
             <img
               src={item.image}
-              alt={item.name}
+              alt={item.nama_menu}
               className="w-12 h-12 object-cover rounded border"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "/images/placeholder.png";
-              }}
             />
           </div>
-          <div>{item.category}</div>
-          <div>Rp{item.price.toLocaleString("id-ID")}</div>
+          <div>{item.kategori}</div>
+          <div>Rp{item.harga_menu.toLocaleString("id-ID")}</div>
           <div>
             <button
-              onClick={() => router.push(`/edititem`)}
-              className="bg-[#775142] text-white px-3 py-1 rounded hover:bg-[#4e372d] transition"
+              onClick={() => router.push(`/edititem?id=${item.id_menu}`)}
+              className="bg-[#775142] text-white px-3 py-1 rounded hover:bg-[#4e372d]"
             >
               Edit
             </button>
           </div>
         </div>
       ))}
-
-      {/* Pagination */}
-      <div className="fixed bottom-4 left-0 w-full flex justify-center z-40">
-        <div className="bg-white px-4 py-2 flex space-x-2 shadow rounded">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            className={`px-3 py-1 rounded ${
-              currentPage === 1 ? "text-gray-400 cursor-not-allowed" : "hover:bg-gray-100"
-            }`}
-            disabled={currentPage === 1}
-          >
-            {"<"}
-          </button>
-          <span className="px-3 py-1">{currentPage}</span>
-          <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            className={`px-3 py-1 rounded ${
-              currentPage === totalPages ? "text-gray-400 cursor-not-allowed" : "hover:bg-gray-100"
-            }`}
-            disabled={currentPage === totalPages}
-          >
-            {">"}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

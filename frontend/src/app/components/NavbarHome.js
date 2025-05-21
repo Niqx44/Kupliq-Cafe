@@ -2,18 +2,48 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const NavbarHome = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0);
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const fetchCustomerName = async () => {
+      if (typeof window !== "undefined") {
+        const userId = localStorage.getItem("user_id");
+
+        if (userId) {
+          try {
+            const res = await fetch(`http://localhost:8080/costumer/${userId}`);
+            if (!res.ok) throw new Error("Gagal mengambil customer");
+
+            const data = await res.json();
+            setCustomerName(data.nama_costumer);
+          } catch (error) {
+            console.error("Error fetching customer data:", error);
+          }
+        }
+      }
+    };
+
+    fetchCustomerName();
+  }, []);
+
+  const handleSignOut = () => {
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("id_role");
+    router.push("/");
+  };
 
   return (
     <nav
@@ -46,19 +76,30 @@ const NavbarHome = () => {
             </Link>
           </li>
         </ul>
-            <Link href="/profile" className="flex items-center space-x-4 group">
-              <span
-                className="text-white group-hover:text-gray-300 transition-colors duration-300"
-                style={{ fontFamily: "Fairplay Display" }}
-              >
-                Faizal Saputro
-              </span>
-              <img
-                src="/images/img_rectangle_9.png" // Ganti path ke foto profil yang kamu simpan
-                alt="Faizal Saputro"
-                className="w-10 h-10 rounded-full object-cover border border-white group-hover:border-gray-300 transition-all duration-300"
-              />
-            </Link>
+
+        <div className="flex items-center space-x-6">
+          <Link href="/profile" className="flex items-center space-x-4 group">
+            <span
+              className="text-white group-hover:text-gray-300 transition-colors duration-300"
+              style={{ fontFamily: "Fairplay Display" }}
+            >
+              {customerName || "Loading..."}
+            </span>
+            <img
+              src="/images/img_rectangle_9.png"
+              alt="Profile"
+              className="w-10 h-10 rounded-full object-cover border border-white group-hover:border-gray-300 transition-all duration-300"
+            />
+          </Link>
+
+          <button
+            onClick={handleSignOut}
+            className="text-white hover:text-red-400 transition duration-300 text-sm font-medium"
+            style={{ fontFamily: "Fairplay Display" }}
+          >
+            Sign Out
+          </button>
+        </div>
       </div>
     </nav>
   );

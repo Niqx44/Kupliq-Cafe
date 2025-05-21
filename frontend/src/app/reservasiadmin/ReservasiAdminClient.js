@@ -1,30 +1,49 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ReservationCard from '../components/ReservationCard';
 import ReservationFilter from '../components/ReservationFilter';
 import NavbarAdminReservation from '../components/NavbarReservasiAdmin';
 
-const allReservations = [
-  { id: 1, name: 'User A', date: '2025-03-19', time: '00:00', status: 'Unconfirmed' },
-  { id: 2, name: 'User B', date: '2025-03-19', time: '09:00', status: 'Unconfirmed' },
-  { id: 3, name: 'User C', date: '2025-03-19', time: '19:00', status: 'Unconfirmed' },
-  { id: 4, name: 'User D', date: '2025-03-19', time: '19:00', status: 'Confirmed' },
-  { id: 5, name: 'User E', date: '2025-03-20', time: '18:00', status: 'Confirmed' },
-];
-
 const AdminReservationPage = () => {
+  const [reservations, setReservations] = useState([]);
   const [filters, setFilters] = useState({ name: '', date: '', time: '', status: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
+
+  // Ambil data reservasi dari backend
+  useEffect(() => {
+    const fetchReservations = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/reservasi");
+        if (!res.ok) throw new Error("Gagal mengambil data reservasi");
+
+        const data = await res.json();
+        // Jika backend tidak menyertakan nama customer dan status, bisa disimulasikan
+        const processed = data.map((r) => ({
+          id: r.id_reservasi,
+          name: `Customer ${r.id_costumer}`, // atau ambil nama dari relasi jika tersedia
+          date: r.tanggal_reservasi,
+          time: r.waktu_reservasi,
+          status: r.keterangan || "Unconfirmed",
+        }));
+        setReservations(processed);
+      } catch (error) {
+        console.error(error);
+        alert("Gagal memuat data reservasi. Silakan cek koneksi atau server.");
+      }
+    };
+
+    fetchReservations();
+  }, []);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
   };
 
-  const filteredData = allReservations.filter(r =>
+  const filteredData = reservations.filter(r =>
     (!filters.name || r.name.toLowerCase().includes(filters.name.toLowerCase())) &&
     (!filters.date || r.date === filters.date) &&
     (!filters.time || r.time === filters.time) &&
@@ -42,13 +61,17 @@ const AdminReservationPage = () => {
         <ReservationFilter onFilterChange={handleFilterChange} />
       </div>
 
-      {/* Daftar reservasi bisa diklik */}
+      {/* Daftar reservasi */}
       <div className="px-20 space-y-4 mt-4">
-        {paginatedData.map((res, idx) => (
-          <Link key={res.id} href={`/detailreservasi/${res.id}`}>
-            <ReservationCard {...res} />
-          </Link>
-        ))}
+        {paginatedData.length === 0 ? (
+          <p className="text-center text-gray-500">Tidak ada data reservasi.</p>
+        ) : (
+          paginatedData.map((res) => (
+            <Link key={res.id} href={`/detailreservasi/${res.id}`}>
+              <ReservationCard {...res} />
+            </Link>
+          ))
+        )}
       </div>
 
       {/* Pagination */}
